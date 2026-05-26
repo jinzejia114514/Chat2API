@@ -70,6 +70,16 @@ test('model mapping provider choices are filtered by selected actual model', () 
   assert.match(panel, /preferredAccountId: ''/)
 })
 
+test('model mapping model selection carries provider identity', () => {
+  const panel = readFileSync('src/renderer/src/components/proxy/ModelMappingConfig.tsx', 'utf8')
+
+  assert.match(panel, /createModelOptionValue\(provider\.id, model\)/)
+  assert.match(panel, /parseModelOptionValue\(value\)/)
+  assert.match(panel, /actualModel: selectedModel/)
+  assert.match(panel, /preferredProviderId: selectedProviderId/)
+  assert.match(panel, /const selectedModelOptionValue/)
+})
+
 test('dashboard chart avoids the broken recharts dependency path', () => {
   const chart = readFileSync('src/renderer/src/components/dashboard/RequestChart.tsx', 'utf8')
 

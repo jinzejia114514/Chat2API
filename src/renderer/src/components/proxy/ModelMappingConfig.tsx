@@ -41,6 +41,22 @@ interface MappingFormData {
 }
 
 const BLOCKER_ID = 'model-mapping-changes'
+const MODEL_OPTION_SEPARATOR = '::'
+
+const createModelOptionValue = (providerId: string, model: string): string =>
+  `${providerId}${MODEL_OPTION_SEPARATOR}${model}`
+
+const parseModelOptionValue = (value: string): { providerId: string; model: string } | null => {
+  const separatorIndex = value.indexOf(MODEL_OPTION_SEPARATOR)
+  if (separatorIndex <= 0) {
+    return null
+  }
+
+  return {
+    providerId: value.slice(0, separatorIndex),
+    model: value.slice(separatorIndex + MODEL_OPTION_SEPARATOR.length),
+  }
+}
 
 const DEFAULT_MODEL_MAPPINGS: Record<string, ModelMapping> = {
   'deepseek-v4-flash-think': {
@@ -338,23 +354,27 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
 
   const modelOptions: ComboboxOption[] = useMemo(() => {
     const options: ComboboxOption[] = []
-    const addedModels = new Set<string>()
 
     providers.forEach(provider => {
       provider.supportedModels?.forEach(model => {
-        if (!addedModels.has(model)) {
-          addedModels.add(model)
-          options.push({
-            value: model,
-            label: model,
-            group: provider.name,
-          })
-        }
+        options.push({
+          value: createModelOptionValue(provider.id, model),
+          label: model,
+          group: provider.name,
+        })
       })
     })
 
-    return options.sort((a, b) => a.value.localeCompare(b.value))
+    return options.sort((a, b) =>
+      a.label === b.label
+        ? (a.group || '').localeCompare(b.group || '')
+        : a.label.localeCompare(b.label)
+    )
   }, [providers])
+
+  const selectedModelOptionValue = selectedProviderId && formData.actualModel
+    ? createModelOptionValue(selectedProviderId, formData.actualModel)
+    : ''
 
   const modelMatchedProviders = useMemo(() => {
     if (!formData.actualModel.trim()) {
@@ -385,11 +405,25 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
   }, [formData.preferredProviderId, providerOptions])
 
   const handleModelChange = (value: string) => {
-    const nextProviders = value.trim()
-      ? providers.filter(provider => provider.supportedModels?.includes(value))
+    const selectedOption = parseModelOptionValue(value)
+    const selectedModel = selectedOption?.model || value
+    const selectedProviderId = selectedOption?.providerId || ''
+    const nextProviders = selectedModel.trim()
+      ? providers.filter(provider => provider.supportedModels?.includes(selectedModel))
       : providers
+    const shouldSelectProvider =
+      selectedProviderId && nextProviders.some(provider => provider.id === selectedProviderId)
 
     setFormData(prev => {
+      if (shouldSelectProvider) {
+        return {
+          ...prev,
+          actualModel: selectedModel,
+          preferredProviderId: selectedProviderId,
+          preferredAccountId: prev.preferredProviderId === selectedProviderId ? prev.preferredAccountId : '',
+        }
+      }
+
       const canKeepProvider =
         !prev.preferredProviderId ||
         prev.preferredProviderId === AUTO_SELECT_VALUE ||
@@ -397,7 +431,7 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
 
       return {
         ...prev,
-        actualModel: value,
+        actualModel: selectedModel,
         preferredProviderId: canKeepProvider ? prev.preferredProviderId : '',
         preferredAccountId: canKeepProvider ? prev.preferredAccountId : '',
       }
@@ -633,7 +667,7 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
               <Label htmlFor="actualModel">{t('proxy.actualModel')}</Label>
               <Combobox
                 options={modelOptions}
-                value={formData.actualModel}
+                value={selectedModelOptionValue}
                 onChange={handleModelChange}
                 placeholder={t('proxy.selectModel')}
                 emptyText={t('proxy.noModelFound')}
