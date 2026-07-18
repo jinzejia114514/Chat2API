@@ -228,7 +228,7 @@ router.delete('/providers/:id/models/:name', async (ctx) => {
     ctx.body = { success: true, data: models }
   } catch (error: any) {
     ctx.status = 400
-    ctx.body = { success: false, error: { message: error.message } })
+    ctx.body = { success: false, error: { message: error.message } }
   }
 })
 
@@ -238,7 +238,7 @@ router.post('/providers/:id/models/reset', async (ctx) => {
     ctx.body = { success: true, data: models }
   } catch (error: any) {
     ctx.status = 400
-    ctx.body = { success: false, error: { message: error.message } })
+    ctx.body = { success: false, error: { message: error.message } }
   }
 })
 
