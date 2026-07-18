@@ -199,7 +199,6 @@ router.get('/version', async (ctx) => {
   ctx.body = { success: true, data: { version: '2.0.0' } }
 })
 
-export default router
 
 // ==================== Model Management ====================
 router.get('/providers/:id/models', async (ctx) => {
@@ -229,7 +228,7 @@ router.delete('/providers/:id/models/:name', async (ctx) => {
     ctx.body = { success: true, data: models }
   } catch (error: any) {
     ctx.status = 400
-    ctx.body = { success: false, error: { message: error.message } }
+    ctx.body = { success: false, error: { message: error.message } })
   }
 })
 
@@ -239,6 +238,8 @@ router.post('/providers/:id/models/reset', async (ctx) => {
     ctx.body = { success: true, data: models }
   } catch (error: any) {
     ctx.status = 400
-    ctx.body = { success: false, error: { message: error.message } }
+    ctx.body = { success: false, error: { message: error.message } })
   }
 })
+
+export default router
