@@ -200,3 +200,45 @@ router.get('/version', async (ctx) => {
 })
 
 export default router
+
+// ==================== Model Management ====================
+router.get('/providers/:id/models', async (ctx) => {
+  const models = storeManager.getEffectiveModels(ctx.params.id)
+  ctx.body = { success: true, data: models }
+})
+
+router.post('/providers/:id/models', async (ctx) => {
+  const { displayName, actualModelId } = ctx.request.body as any
+  if (!displayName || !actualModelId) {
+    ctx.status = 400
+    ctx.body = { success: false, error: { message: 'Missing displayName or actualModelId' } }
+    return
+  }
+  try {
+    const models = storeManager.addCustomModel(ctx.params.id, { displayName, actualModelId })
+    ctx.body = { success: true, data: models }
+  } catch (error: any) {
+    ctx.status = 400
+    ctx.body = { success: false, error: { message: error.message } }
+  }
+})
+
+router.delete('/providers/:id/models/:name', async (ctx) => {
+  try {
+    const models = storeManager.removeModel(ctx.params.id, ctx.params.name)
+    ctx.body = { success: true, data: models }
+  } catch (error: any) {
+    ctx.status = 400
+    ctx.body = { success: false, error: { message: error.message } }
+  }
+})
+
+router.post('/providers/:id/models/reset', async (ctx) => {
+  try {
+    const models = storeManager.resetModels(ctx.params.id)
+    ctx.body = { success: true, data: models }
+  } catch (error: any) {
+    ctx.status = 400
+    ctx.body = { success: false, error: { message: error.message } }
+  }
+})
