@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios'
-import { shell } from 'electron'
+
 import { BaseOAuthAdapter } from './base'
 import {
   OAuthResult,
@@ -54,7 +54,7 @@ export class QwenAdapter extends BaseOAuthAdapter {
     this.emitProgress('pending', 'Opening browser...')
     
     try {
-      await shell.openExternal(QWEN_WEB_BASE)
+      await this.openLoginUrl(QWEN_WEB_BASE)
       this.emitProgress('pending', 'Please log in via browser and enter Ticket manually')
       
       return {

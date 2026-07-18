@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ThemeProvider } from './components/ThemeProvider'
+import './api/client'  // 初始化 API 客户端（注入 window.electronAPI）
 import './i18n'
 import './index.css'
 

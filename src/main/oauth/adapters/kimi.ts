@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios'
-import { shell } from 'electron'
+
 import { BaseOAuthAdapter } from './base'
 import {
   OAuthResult,
@@ -157,7 +157,7 @@ export class KimiAdapter extends BaseOAuthAdapter {
     this.emitProgress('pending', 'Opening browser...')
     
     try {
-      await shell.openExternal(KIMI_API_BASE)
+      await this.openLoginUrl(KIMI_API_BASE)
       this.emitProgress('pending', 'Please log in via browser and enter Token manually')
       
       return {

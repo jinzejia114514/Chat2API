@@ -1,7 +1,4 @@
-import { App } from 'electron'
-
-declare module 'electron' {
-  interface App {
-    isQuitting?: boolean
-  }
-}
+/**
+ * Web 版：移除 Electron 类型扩展
+ */
+export {}

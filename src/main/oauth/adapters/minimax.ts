@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios'
-import { shell } from 'electron'
+
 import crypto from 'crypto'
 import { BaseOAuthAdapter } from './base'
 import {
@@ -81,7 +81,7 @@ export class MiniMaxAdapter extends BaseOAuthAdapter {
     this.emitProgress('pending', 'Opening browser...')
     
     try {
-      await shell.openExternal(MINIMAX_API_BASE)
+      await this.openLoginUrl(MINIMAX_API_BASE)
       this.emitProgress('pending', 'Please log in via browser and enter Token manually')
       
       return {

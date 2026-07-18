@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/MainLayout'
-import { TrayView } from '@/components/Tray/TrayView'
 import { Toaster } from '@/components/ui/toaster'
 import { Skeleton } from '@/components/ui/skeleton'
+import Login from '@/pages/Login'
 
 const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })))
 const Providers = lazy(() => import('@/pages/Providers').then(m => ({ default: m.Providers })))
@@ -28,12 +28,21 @@ function PageLoader() {
   )
 }
 
+// 受保护路由：需要登录
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('chat2api_token')
+  if (!token) {
+    return <Navigate to="/login" replace />
+  }
+  return <>{children}</>
+}
+
 function App() {
   return (
     <>
       <Routes>
-        <Route path="/tray" element={<TrayView />} />
-        <Route element={<MainLayout />}>
+        <Route path="/login" element={<Login />} />
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
           <Route path="/providers" element={<Suspense fallback={<PageLoader />}><Providers /></Suspense>} />
           <Route path="/proxy" element={<Suspense fallback={<PageLoader />}><ProxySettings /></Suspense>} />
@@ -44,6 +53,7 @@ function App() {
           <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
           <Route path="/about" element={<Suspense fallback={<PageLoader />}><About /></Suspense>} />
         </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster />
     </>
