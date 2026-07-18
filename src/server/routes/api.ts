@@ -72,12 +72,32 @@ router.post('/accounts/validate-token', async (ctx) => {
     ctx.body = { success: false, error: { message: 'Missing providerId or credentials' } }
     return
   }
-  ctx.body = { success: true, data: { valid: true, message: 'Token format valid' } }
+  try {
+    const { validateCredentials } = await import('../../main/store/validator')
+    const provider = ProviderManager.getById(providerId)
+    if (!provider) {
+      ctx.status = 404
+      ctx.body = { success: false, error: { message: 'Provider not found' } }
+      return
+    }
+    const result = await validateCredentials(provider, credentials)
+    ctx.body = { success: true, data: result }
+  } catch (error: any) {
+    ctx.body = { success: true, data: { valid: false, error: error.message || 'Validation failed' } }
+  }
 })
 router.post('/accounts/:id/validate', async (ctx) => {
-  const account = AccountManager.getById(ctx.params.id)
-  if (!account) { ctx.status = 404; ctx.body = { success: false }; return }
-  ctx.body = { success: true, data: { valid: true } }
+  const account = AccountManager.getById(ctx.params.id, true)
+  if (!account) { ctx.status = 404; ctx.body = { success: false, error: { message: 'Account not found' } }; return }
+  try {
+    const { validateCredentials } = await import('../../main/store/validator')
+    const provider = ProviderManager.getById(account.providerId)
+    if (!provider) { ctx.body = { success: false, error: { message: 'Provider not found' } }; return }
+    const result = await validateCredentials(provider, account.credentials)
+    ctx.body = { success: true, data: result }
+  } catch (error: any) {
+    ctx.body = { success: true, data: { valid: false, error: error.message } }
+  }
 })
 router.get('/accounts/:id/credits', async (ctx) => {
   const account = AccountManager.getById(ctx.params.id)
