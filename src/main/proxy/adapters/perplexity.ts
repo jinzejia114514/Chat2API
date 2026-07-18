@@ -1,3 +1,5 @@
+import https from 'https'
+import { URL } from 'url'
 
 import { Readable } from 'stream'
 import { Account, Provider } from '../store/types'
@@ -314,10 +316,11 @@ export class PerplexityAdapter {
 
     // Use Electron's net API which uses Chromium's network stack
     // This bypasses Cloudflare's TLS fingerprint detection
-    const request_ = net.request({
-      method: 'POST',
-      url: QUERY_ENDPOINT,
-    })
+    const request_ = (() => {
+      const parsed = new URL(QUERY_ENDPOINT)
+      const req = https.request({ hostname: parsed.hostname, port: parsed.port || 443, path: parsed.pathname + parsed.search, method: "POST" })
+      return req
+    })()
 
     for (const [key, value] of Object.entries(headers)) {
       request_.setHeader(key, value)
@@ -458,10 +461,11 @@ export class PerplexityAdapter {
       }
 
       return new Promise((resolve) => {
-        const request_ = net.request({
-          method: 'DELETE',
-          url: deleteUrl,
-        })
+        const request_ = (() => {
+      const parsed = new URL(deleteUrl)
+      const req = https.request({ hostname: parsed.hostname, port: parsed.port || 443, path: parsed.pathname + parsed.search, method: "DELETE" })
+      return req
+    })()
 
         for (const [key, value] of Object.entries(headers)) {
           request_.setHeader(key, value)
@@ -527,10 +531,11 @@ export class PerplexityAdapter {
     }
 
     return new Promise((resolve) => {
-      const request_ = net.request({
-        method: 'DELETE',
-        url: deleteUrl,
-      })
+      const request_ = (() => {
+      const parsed = new URL(deleteUrl)
+      const req = https.request({ hostname: parsed.hostname, port: parsed.port || 443, path: parsed.pathname + parsed.search, method: "DELETE" })
+      return req
+    })()
 
       for (const [key, value] of Object.entries(headers)) {
         request_.setHeader(key, value)

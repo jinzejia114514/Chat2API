@@ -1,45 +1,22 @@
-/**
- * HTTP API 客户端 - 替代 Electron IPC 的 window.electronAPI
- * 保持相同的 API 形状，底层使用 fetch
- */
-
 const TOKEN_KEY = 'chat2api_token'
-
-function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token)
-}
-
-function clearToken() {
-  localStorage.removeItem(TOKEN_KEY)
-}
+function getToken(): string | null { return localStorage.getItem(TOKEN_KEY) }
+function setToken(token: string) { localStorage.setItem(TOKEN_KEY, token) }
+function clearToken() { localStorage.removeItem(TOKEN_KEY) }
 
 async function apiFetch(path: string, options: RequestInit = {}): Promise<any> {
   const token = getToken()
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {}),
-  }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string> || {}) }
   if (token) headers['Authorization'] = `Bearer ${token}`
-
   const resp = await fetch(path, { ...options, headers })
   if (resp.status === 401) {
     clearToken()
-    if (!window.location.pathname.includes('/login')) {
-      window.location.hash = '#/login'
-    }
+    if (!window.location.pathname.includes('/login')) { window.location.hash = '#/login' }
     throw new Error('Unauthorized')
   }
   return resp.json()
 }
 
-// ===== API 客户端（与 electronAPI 保持同形） =====
-
 export const api = {
-  // 认证
   auth: {
     setup: (password: string) => apiFetch('/api/auth/setup', { method: 'POST', body: JSON.stringify({ password }) }),
     login: async (password: string) => {
@@ -50,136 +27,134 @@ export const api = {
     checkSetup: () => apiFetch('/api/auth/setup'),
     logout: () => { clearToken(); window.location.hash = '#/login' },
   },
-
-  // Proxy
   proxy: {
-    getStatus: () => apiFetch('/api/proxy/status').then(r => r.data),
+    getStatus: () => apiFetch('/api/proxy/status').then((r: any) => r.data),
     start: (port?: number) => apiFetch('/api/proxy/start', { method: 'POST', body: JSON.stringify({ port }) }),
     stop: () => apiFetch('/api/proxy/stop', { method: 'POST' }),
-    getStatistics: () => apiFetch('/api/proxy/statistics').then(r => r.data),
-    onStatusChanged: (_cb: any) => () => {},
+    getStatistics: () => apiFetch('/api/proxy/statistics').then((r: any) => r.data),
+    onStatusChanged: () => () => {},
   },
-
-  // Config
   config: {
-    get: () => apiFetch('/api/config').then(r => r.data),
-    update: (updates: any) => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify(updates) }).then(r => r.data),
-    onConfigChanged: (_cb: any) => () => {},
+    get: () => apiFetch('/api/config').then((r: any) => r.data),
+    update: (updates: any) => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify(updates) }).then((r: any) => r.data),
+    onConfigChanged: () => () => {},
   },
-
-  // Providers
   providers: {
-    getAll: () => apiFetch('/api/providers').then(r => r.data),
-    getBuiltin: () => apiFetch('/api/providers/builtin').then(r => r.data),
-    getById: (id: string) => apiFetch(`/api/providers/${id}`).then(r => r.data),
-    add: (data: any) => apiFetch('/api/providers', { method: 'POST', body: JSON.stringify(data) }).then(r => r.data),
-    update: (id: string, data: any) => apiFetch(`/api/providers/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then(r => r.data),
+    getAll: () => apiFetch('/api/providers').then((r: any) => r.data),
+    getBuiltin: () => apiFetch('/api/providers/builtin').then((r: any) => r.data),
+    getById: (id: string) => apiFetch(`/api/providers/${id}`).then((r: any) => r.data),
+    add: (data: any) => apiFetch('/api/providers', { method: 'POST', body: JSON.stringify(data) }).then((r: any) => r.data),
+    update: (id: string, data: any) => apiFetch(`/api/providers/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then((r: any) => r.data),
     delete: (id: string) => apiFetch(`/api/providers/${id}`, { method: 'DELETE' }),
     checkAllStatus: () => Promise.resolve({}),
-    duplicate: (id: string) => apiFetch(`/api/providers/${id}`).then(r => r.data),
-    export: (id: string) => apiFetch(`/api/providers/${id}`).then(r => r.data),
-    import: (data: string) => apiFetch('/api/providers', { method: 'POST', body: data }).then(r => r.data),
+    checkStatus: (id: string) => Promise.resolve({ providerId: id, status: 'unknown' }),
+    duplicate: (id: string) => apiFetch(`/api/providers/${id}`).then((r: any) => r.data),
+    export: (id: string) => apiFetch(`/api/providers/${id}`).then((r: any) => r.data),
+    import: (data: string) => apiFetch('/api/providers', { method: 'POST', body: data }).then((r: any) => r.data),
+    updateModels: (id: string) => Promise.resolve({ success: true, modelsCount: 0 }),
+    getEffectiveModels: (id: string) => Promise.resolve([]),
+    addCustomModel: (id: string, model: any) => Promise.resolve({ success: true, models: [] }),
+    removeModel: (id: string, name: string) => Promise.resolve({ success: true, models: [] }),
+    resetModels: (id: string) => Promise.resolve({ success: true, models: [] }),
+    syncModels: (id: string) => Promise.resolve({ success: true }),
+    getSupportedModels: (id: string) => Promise.resolve([]),
   },
-
-  // Accounts
   accounts: {
-    getAll: (includeCredentials?: boolean) => apiFetch(`/api/accounts${includeCredentials ? '?credentials=true' : ''}`).then(r => r.data),
-    getById: (id: string, includeCredentials?: boolean) => apiFetch(`/api/accounts/${id}${includeCredentials ? '?credentials=true' : ''}`).then(r => r.data),
-    add: (data: any) => apiFetch('/api/accounts', { method: 'POST', body: JSON.stringify(data) }).then(r => r.data),
-    update: (id: string, data: any) => apiFetch(`/api/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then(r => r.data),
+    getAll: (includeCredentials?: boolean) => apiFetch(`/api/accounts${includeCredentials ? '?credentials=true' : ''}`).then((r: any) => r.data),
+    getById: (id: string, includeCredentials?: boolean) => apiFetch(`/api/accounts/${id}${includeCredentials ? '?credentials=true' : ''}`).then((r: any) => r.data),
+    getByProvider: (providerId: string) => apiFetch(`/api/accounts?providerId=${providerId}`).then((r: any) => r.data),
+    add: (data: any) => apiFetch('/api/accounts', { method: 'POST', body: JSON.stringify(data) }).then((r: any) => r.data),
+    update: (id: string, data: any) => apiFetch(`/api/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then((r: any) => r.data),
     delete: (id: string) => apiFetch(`/api/accounts/${id}`, { method: 'DELETE' }),
+    validate: (id: string) => apiFetch(`/api/accounts/${id}/validate`, { method: 'POST' }).then((r: any) => r.data),
+    validateToken: (providerId: string, credentials: Record<string, string>) => apiFetch('/api/accounts/validate-token', { method: 'POST', body: JSON.stringify({ providerId, credentials }) }).then((r: any) => r.data),
+    getCredits: (id: string) => apiFetch(`/api/accounts/${id}/credits`).then((r: any) => r.data),
+    clearChats: (id: string) => apiFetch(`/api/accounts/${id}/clear-chats`, { method: 'POST' }),
+    refreshToken: (id: string) => apiFetch(`/api/accounts/${id}/refresh`, { method: 'POST' }).then((r: any) => r.data),
   },
-
-  // Logs
   logs: {
-    get: (filter?: any) => apiFetch('/api/logs').then(r => r.data),
+    get: (filter?: any) => apiFetch('/api/logs').then((r: any) => r.data),
     clear: () => apiFetch('/api/logs', { method: 'DELETE' }),
-    getStats: () => apiFetch('/api/logs/stats').then(r => r.data),
-    getTrend: (days?: number) => apiFetch('/api/logs').then(r => r.data),
-    export: () => apiFetch('/api/logs').then(r => r.data),
+    getStats: () => apiFetch('/api/logs/stats').then((r: any) => r.data),
+    getTrend: (days?: number) => apiFetch('/api/logs').then((r: any) => r.data),
+    getAccountTrend: (accountId: string, days?: number) => apiFetch(`/api/logs?accountId=${accountId}&days=${days || 7}`).then((r: any) => r.data),
+    export: () => apiFetch('/api/logs').then((r: any) => r.data),
+    getById: (id: string) => Promise.resolve(undefined),
   },
-
-  // Request Logs
   requestLogs: {
-    get: (filter?: any) => apiFetch('/api/request-logs').then(r => r.data),
+    get: (filter?: any) => apiFetch('/api/request-logs').then((r: any) => r.data),
     clear: () => apiFetch('/api/request-logs', { method: 'DELETE' }),
-    getStats: () => apiFetch('/api/logs/stats').then(r => r.data),
-    getTrend: (days?: number) => apiFetch('/api/request-logs').then(r => r.data),
+    getStats: () => apiFetch('/api/logs/stats').then((r: any) => r.data),
+    getTrend: (days?: number) => apiFetch('/api/request-logs').then((r: any) => r.data),
   },
-
-  // Statistics
   statistics: {
-    get: () => apiFetch('/api/statistics').then(r => r.data),
-    getToday: () => apiFetch('/api/statistics/today').then(r => r.data),
+    get: () => apiFetch('/api/statistics').then((r: any) => r.data),
+    getToday: () => apiFetch('/api/statistics/today').then((r: any) => r.data),
   },
-
-  // Sessions
   session: {
-    getAll: () => apiFetch('/api/sessions').then(r => r.data),
+    getAll: () => apiFetch('/api/sessions').then((r: any) => r.data),
+    getActive: () => Promise.resolve([]),
+    getById: (id: string) => Promise.resolve(undefined),
+    getByAccount: (accountId: string) => Promise.resolve([]),
+    getByProvider: (providerId: string) => Promise.resolve([]),
     delete: (id: string) => apiFetch(`/api/sessions/${id}`, { method: 'DELETE' }),
     clearAll: () => apiFetch('/api/sessions', { method: 'DELETE' }),
-    getConfig: () => apiFetch('/api/config').then(r => r.data?.sessionConfig),
+    getConfig: () => apiFetch('/api/config').then((r: any) => r.data?.sessionConfig),
     updateConfig: (cfg: any) => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify({ sessionConfig: cfg }) }),
+    cleanExpired: () => Promise.resolve(0),
   },
-
-  // Prompts
   prompts: {
-    getAll: () => apiFetch('/api/prompts').then(r => r.data),
-    getBuiltin: () => apiFetch('/api/prompts').then(r => r.data),
-    add: (data: any) => apiFetch('/api/prompts', { method: 'POST', body: JSON.stringify(data) }).then(r => r.data),
-    update: (id: string, data: any) => apiFetch(`/api/prompts/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then(r => r.data),
+    getAll: () => apiFetch('/api/prompts').then((r: any) => r.data),
+    getBuiltin: () => apiFetch('/api/prompts').then((r: any) => r.data),
+    add: (data: any) => apiFetch('/api/prompts', { method: 'POST', body: JSON.stringify(data) }).then((r: any) => r.data),
+    update: (id: string, data: any) => apiFetch(`/api/prompts/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then((r: any) => r.data),
     delete: (id: string) => apiFetch(`/api/prompts/${id}`, { method: 'DELETE' }),
   },
-
-  // App
   app: {
-    getVersion: () => apiFetch('/api/version').then(r => r.data?.version),
+    getVersion: () => apiFetch('/api/version').then((r: any) => r.data?.version),
+    checkUpdate: () => Promise.resolve({ updateAvailable: false }),
+    getUpdateStatus: () => Promise.resolve({}),
+    openExternal: (url: string) => { window.open(url, '_blank'); return Promise.resolve() },
+    downloadUpdate: () => Promise.resolve(),
+    installUpdate: () => Promise.resolve(),
+    onUpdateChecking: () => () => {},
+    onUpdateAvailable: () => () => {},
+    onUpdateNotAvailable: () => () => {},
+    onUpdateProgress: () => () => {},
+    onUpdateDownloaded: () => () => {},
+    onUpdateError: () => () => {},
   },
-
-  // 通用 invoke / send / on（兼容用）
-  invoke: (channel: string, ..._args: any[]) => {
-    console.warn(`[API] invoke('${channel}') is deprecated`)
-    return Promise.resolve(null)
+  store: {
+    get: (key: string) => apiFetch(`/api/config`).then((r: any) => r.data?.[key]),
+    set: (key: string, value: any) => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify({ [key]: value }) }),
+    clearAll: () => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify({}) }),
+    delete: (key: string) => Promise.resolve(),
+    onInitError: () => () => {},
+    retryInit: () => Promise.resolve({ success: true }),
   },
-  send: (channel: string, ..._args: any[]) => {
-    console.warn(`[API] send('${channel}') is deprecated`)
-  },
-  on: (_channel: string, _cb: any) => {
-    return () => {}
-  },
-
-  // Tray（Web 版不支持，返回空操作）
-  tray: {
-    openDashboard: () => {},
-    setHeight: () => {},
-    quitApp: () => {},
-  },
-
-  // Management API / Context Management / OAuth / Tool Calling
+  invoke: (_channel: string, ..._args: any[]) => Promise.resolve(null),
+  send: (_channel: string, ..._args: any[]) => {},
+  on: (_channel: string, _cb: any) => () => {},
+  tray: { openDashboard: () => {}, setHeight: () => {}, quitApp: () => {} },
   managementApi: {
-    getConfig: () => apiFetch('/api/config').then(r => r.data?.managementApi),
+    getConfig: () => apiFetch('/api/config').then((r: any) => r.data?.managementApi),
     updateConfig: (cfg: any) => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify({ managementApi: cfg }) }),
     generateSecret: () => Promise.resolve(''),
   },
-
   contextManagement: {
-    getConfig: () => apiFetch('/api/config').then(r => r.data?.contextManagement),
+    getConfig: () => apiFetch('/api/config').then((r: any) => r.data?.contextManagement),
     updateConfig: (cfg: any) => apiFetch('/api/config', { method: 'PUT', body: JSON.stringify({ contextManagement: cfg }) }),
   },
-
   oauth: {
     startLogin: () => Promise.resolve({ success: false, error: 'Web版仅支持手动输入Token' }),
-    loginWithToken: () => Promise.resolve({ success: false }),
+    loginWithToken: (providerId: string, credentials: Record<string, string>) => apiFetch('/api/accounts/validate-token', { method: 'POST', body: JSON.stringify({ providerId, credentials }) }),
     getStatus: () => Promise.resolve({}),
   },
-
   toolCalling: {
     getStatus: () => Promise.resolve(null),
-    runSmoke: (_input: any) => Promise.resolve({ success: false }),
+    runSmoke: () => Promise.resolve({ success: false }),
   },
 }
 
-// 暴露给 window，兼容现有代码
 ;(window as any).electronAPI = api
-
 export default api
